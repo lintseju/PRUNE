@@ -172,15 +172,8 @@ def compute_PMI(graph, nodeCount, in_degrees, out_degrees, alpha=5.0):
     alpha: reprensents the number of effective negative samples
            for each positive sample
     """
-    PMI_values = np.zeros((len(graph), 1))
-    for ind in range(len(graph)):
-        head, tail = graph[ind]
-        pmi = len(graph) / alpha / out_degrees[head] / in_degrees[tail]
-        PMI_values[ind, 0] = np.log(pmi)
-
-    PMI_values[PMI_values < 0] = 0
-
-    return PMI_values
+    PMI_values = np.clip(np.log(len(graph) / alpha / out_degrees[graph[:, 0]] / in_degrees[graph[:, 1]]), 0, None)
+    return np.reshape(PMI_values, (len(PMI_values), 1))
 
 
 def run_PRUNE(lamb, graph, nodeCount, n_emb, learning_rate, epoch,
@@ -191,11 +184,8 @@ def run_PRUNE(lamb, graph, nodeCount, n_emb, learning_rate, epoch,
     Initialize and train PRUNE for node embeddings
     """
     # compute indegrees, outdegrees, PMI values
-    out_degrees = np.zeros(nodeCount)
-    in_degrees = np.zeros(nodeCount)
-    for node_i, node_j in graph:
-        out_degrees[node_i] += 1
-        in_degrees[node_j] += 1
+    out_degrees = np.bincount(graph[:, 0], minlength=nodeCount)
+    in_degrees = np.bincount(graph[:, 1], minlength=nodeCount)
 
     PMI_values = compute_PMI(graph, nodeCount, in_degrees, out_degrees)
 
